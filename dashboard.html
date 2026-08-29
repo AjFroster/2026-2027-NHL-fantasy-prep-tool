@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NHL Fantasy Projections 2026-27</title>
+<style>
+  :root {
+    --bg: #14171c;
+    --panel: #1c2027;
+    --panel2: #232833;
+    --line: #333a47;
+    --fg: #d8dee9;
+    --dim: #8b95a7;
+    --accent: #61a0ff;
+    --pos: #66c98a;
+    --neg: #e2756c;
+    --tier-spp: #e6e9f0;
+    --tier-sp: #f2d675;
+    --tier-s: #c9a227;
+    --tier-a: #57a773;
+    --tier-b: #4a86c5;
+    --tier-c: #7d7f94;
+    --tier-d: #6a5060;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 14px 16px 60px;
+    background: var(--bg); color: var(--fg);
+    font: 13px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 17px; margin: 0 0 2px; font-weight: 600; letter-spacing: .3px; }
+  .sub { color: var(--dim); font-size: 11px; margin-bottom: 12px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 4px; padding: 10px 12px; margin-bottom: 10px;
+  }
+  .panel h2 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--dim); margin: 0 0 8px; font-weight: 600;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  label { display: block; font-size: 10px; color: var(--dim); margin-bottom: 3px;
+          text-transform: uppercase; letter-spacing: .5px; }
+  input, select, button {
+    background: var(--panel2); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 3px;
+    padding: 4px 6px; font: inherit; font-size: 12px;
+  }
+  input[type=number] { width: 74px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  input[type=text] { width: 170px; }
+  input[type=file] { border: none; background: none; font-size: 11px; padding: 0; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); color: #fff; }
+  .mono, td.num, th.num {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  td.num, th.num { text-align: right; }
+  table { border-collapse: collapse; width: 100%; }
+  thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--panel2); color: var(--dim);
+    font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+    padding: 6px 7px; border-bottom: 1px solid var(--line);
+    cursor: pointer; user-select: none; white-space: nowrap; text-align: left;
+  }
+  thead th:hover { color: var(--fg); background: #283040; }
+  thead th:focus-visible { outline: 1px solid var(--accent); outline-offset: -2px; color: var(--fg); }
+  thead th .arrow { color: var(--accent); }
+  thead th .arrow.idle { color: var(--dim); opacity: .45; }
+  thead th:hover .arrow.idle { opacity: 1; }
+  tbody td { padding: 4px 7px; border-bottom: 1px solid #23272f; white-space: nowrap; }
+  tbody td:first-child { color: var(--dim); }
+  thead th:first-child { width: 1%; }
+  tbody tr.main { cursor: pointer; }
+  tbody tr.main:hover { background: #1f2530; }
+  tbody tr.open { background: #222a38; }
+  .tier {
+    display: inline-block; min-width: 18px; text-align: center;
+    padding: 1px 5px; border-radius: 3px; font-size: 11px; font-weight: 700;
+    color: #10131a;
+  }
+  .t-SPP { background: var(--tier-spp); }
+  .t-SP { background: var(--tier-sp); }
+  .t-S { background: var(--tier-s); } .t-A { background: var(--tier-a); }
+  .t-B { background: var(--tier-b); } .t-C { background: var(--tier-c); }
+  .t-D { background: var(--tier-d); color: #d8dee9; }
+  .t-NR { background: #2a2f3a; color: var(--dim); }
+  .pos-badge { color: var(--dim); }
+  .flag-pos { color: var(--pos); } .flag-neg { color: var(--neg); }
+  .warn { color: var(--neg); }
+  .detail td { background: #191d25; padding: 10px 14px; }
+  .detail table { width: auto; margin-right: 26px; }
+  .detail th { position: static; background: none; border-bottom: 1px solid var(--line); }
+  .detail td { border-bottom: 1px solid #23272f; }
+  .detail-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .top10 { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .top10 div { font-size: 12px; }
+  .top10 .rank { color: var(--dim); display: inline-block; width: 20px; }
+  .top10 .fp { color: var(--accent); }
+  .status { font-size: 11px; color: var(--dim); }
+  .status.err { color: var(--neg); }
+  .count { color: var(--dim); font-size: 11px; margin: 6px 0; }
+  .toggle-btn.active { background: #2b3d5c; border-color: var(--accent); color: #fff; }
+  .scroll { overflow-x: auto; }
+  .injury { color: var(--neg); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>NHL Fantasy Projections &mdash; 2026-27</h1>
+<div class="sub">Marcel-style projections (5/4/3 weighted, regressed to positional mean, age-adjusted). All scoring applied live in the browser.</div>
+
+<div class="panel">
+  <h2>Data</h2>
+  <div class="row">
+    <div>
+      <label>projections_2026_27.csv</label>
+      <input type="file" id="fileProj" accept=".csv">
+    </div>
+    <div>
+      <label>skaters_3yr.csv</label>
+      <input type="file" id="fileHist" accept=".csv">
+    </div>
+    <div class="status" id="status">Trying to auto-load from data/ &hellip;</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Scoring</h2>
+  <div class="row">
+    <div><label>Goal</label><input type="number" step="0.05" id="w_goals" class="wt"></div>
+    <div><label>Assist</label><input type="number" step="0.05" id="w_assists" class="wt"></div>
+    <div><label>Shot</label><input type="number" step="0.01" id="w_shots" class="wt"></div>
+    <div><label>Hit</label><input type="number" step="0.05" id="w_hits" class="wt"></div>
+    <div><label>Block</label><input type="number" step="0.05" id="w_blocks" class="wt"></div>
+    <div><button id="resetWeights">reset to defaults</button></div>
+    <div><label>Teams</label><input type="number" step="1" min="1" id="cfgTeams" value="12"></div>
+    <div><label>F slots</label><input type="number" step="1" min="1" id="cfgF" value="9"></div>
+    <div><label>D slots</label><input type="number" step="1" min="1" id="cfgD" value="4"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Top 10 by FPPG &mdash; current weights <span id="top10ctx" class="status"></span></h2>
+  <div class="top10" id="top10">&mdash;</div>
+</div>
+
+<div class="panel">
+  <h2>View &amp; filters</h2>
+  <div class="row">
+    <div>
+      <label>View</label>
+      <button class="toggle-btn active" id="btnProj">2026-27 projection</button>
+      <button class="toggle-btn" id="btnActual">2025-26 actual</button>
+    </div>
+    <div>
+      <label>Position</label>
+      <button class="toggle-btn pos-btn active" data-pos="">All</button>
+      <button class="toggle-btn pos-btn" data-pos="F">Forwards</button>
+      <button class="toggle-btn pos-btn" data-pos="D">Defense</button>
+    </div>
+    <div><label>Team</label><select id="fTeam"><option value="">all</option></select></div>
+    <div><label>Min GP</label><input type="number" step="1" id="fGP" value="0"></div>
+    <div><label>Tier</label><select id="fTier"><option value="">all</option><option>S++</option><option>S+</option><option>S</option><option>A</option><option>B</option><option>C</option><option>D</option><option>NR</option></select></div>
+    <div><label>Trend</label><select id="fTrend"><option value="">all</option><option>Rising</option><option>Declining</option><option>Volatile</option><option>Stable</option></select></div>
+    <div><label>Sh% flag</label><select id="fShFlag"><option value="">all</option><option>positive regression</option><option>negative regression</option><option>neutral</option></select></div>
+    <div><label>Name</label><input type="text" id="fName" placeholder="search&hellip;"></div>
+    <div><button id="btnExport">export view as CSV</button> <span class="status" id="exportMsg"></span></div>
+  </div>
+</div>
+
+<div class="count" id="count"></div>
+<div class="scroll">
+  <table id="tbl">
+    <thead><tr id="thead"></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ * CSV parsing / serialising (inline, no dependencies)
+ * ------------------------------------------------------------------ */
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = "", i = 0, inQ = false;
+  text = text.replace(/^﻿/, "");
+  while (i < text.length) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        inQ = false; i++; continue;
+      }
+      field += c; i++; continue;
+    }
+    if (c === '"') { inQ = true; i++; continue; }
+    if (c === ",") { row.push(field); field = ""; i++; continue; }
+    if (c === "\r") { i++; continue; }
+    if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
+    field += c; i++;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  if (!rows.length) return [];
+  const head = rows[0];
+  return rows.slice(1).filter(r => r.length > 1).map(r => {
+    const o = {};
+    head.forEach((h, j) => o[h] = r[j] === undefined ? "" : r[j]);
+    return o;
+  });
+}
+function toCSV(header, rows) {
+  const esc = v => {
+    v = (v === null || v === undefined) ? "" : String(v);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  };
+  return [header.join(",")].concat(
+    rows.map(r => header.map(h => esc(r[h])).join(","))
+  ).join("\n");
+}
+const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+/* ------------------------------------------------------------------ *
+ * State
+ * ------------------------------------------------------------------ */
+const STATS = ["goals", "assists", "shots", "hits", "blocks"];
+const DEFAULT_WEIGHTS = { goals: 2.0, assists: 1.5, shots: 0.15, hits: 0.2, blocks: 0.35 };
+const LS_KEY = "nhlFantasyWeights.v1";
+const SEASON_KEYS = ["20232024", "20242025", "20252026"];
+const SEASON_LABEL = { "20232024": "2023-24", "20242025": "2024-25", "20252026": "2025-26" };
+// Clustered tiers, plus S++ -- not a cluster, but the top `teams` players
+// overall by projected season total: the first round of the draft.
+const KMEANS_TIERS = ["S+", "S", "A", "B", "C", "D"];
+const TIERS = ["S++"].concat(KMEANS_TIERS);
+const TIER_MIN_GP = 40;
+
+let weights = Object.assign({}, DEFAULT_WEIGHTS);
+let projRows = [];          // raw rows from projections CSV
+let histByPlayer = {};      // playerId -> { seasonId -> row }
+let view = "proj";          // "proj" | "actual"
+let posFilter = "";         // "" | "F" | "D"
+let sortKey = "fppg", sortDir = -1;
+let openPlayer = null;
+let computed = [];          // current derived rows
+
+/* ------------------------------------------------------------------ *
+ * Weights: load / persist
+ * ------------------------------------------------------------------ */
+function loadWeights() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      const o = JSON.parse(raw);
+      STATS.forEach(s => { if (typeof o[s] === "number" && isFinite(o[s])) weights[s] = o[s]; });
+    }
+  } catch (e) { /* corrupt or unavailable storage -> keep defaults */ }
+  STATS.forEach(s => document.getElementById("w_" + s).value = weights[s]);
+}
+function saveWeights() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(weights)); } catch (e) {}
+}
+function readWeightInputs() {
+  STATS.forEach(s => {
+    const v = parseFloat(document.getElementById("w_" + s).value);
+    weights[s] = isFinite(v) ? v : 0;
+  });
+  saveWeights();
+}
+
+/* ------------------------------------------------------------------ *
+ * 1-D k-means for tiers (same deterministic quantile init as project.py)
+ * ------------------------------------------------------------------ */
+function kmeans1d(values, k) {
+  const n = values.length;
+  if (!n) return [];
+  if (n <= k) {
+    const order = values.map((v, i) => i).sort((a, b) => values[b] - values[a]);
+    const out = new Array(n);
+    order.forEach((i, rank) => out[i] = rank);
+    return out;
+  }
+  const srt = values.slice().sort((a, b) => a - b);
+  let cent = [];
+  for (let j = 0; j < k; j++) cent.push(srt[Math.min(n - 1, Math.floor((j + 0.5) * n / k))]);
+  const assign = new Array(n).fill(0);
+  for (let it = 0; it < 200; it++) {
+    let changed = false;
+    for (let i = 0; i < n; i++) {
+      let best = 0, bd = Infinity;
+      for (let j = 0; j < k; j++) {
+        const d = Math.abs(values[i] - cent[j]);
+        if (d < bd) { bd = d; best = j; }
+      }
+      if (best !== assign[i]) { assign[i] = best; changed = true; }
+    }
+    const sums = new Array(k).fill(0), counts = new Array(k).fill(0);
+    for (let i = 0; i < n; i++) { sums[assign[i]] += values[i]; counts[assign[i]]++; }
+    for (let j = 0; j < k; j++) if (counts[j]) cent[j] = sums[j] / counts[j];
+    if (!changed) break;
+  }
+  const order = cent.map((c, j) => j).sort((a, b) => cent[b] - cent[a]);
+  const remap = {};
+  order.forEach((old, nw) => remap[old] = nw);
+  return assign.map(a => remap[a]);
+}
+
+/* ------------------------------------------------------------------ *
+ * Derived rows for the current view + weights
+ * ------------------------------------------------------------------ */
+function fpOf(s) { return STATS.reduce((t, k) => t + weights[k] * s[k], 0); }
+
+function buildComputed() {
+  const out = [];
+  projRows.forEach(p => {
+    const pid = p.playerId;
+    let stats, gp, name = p.playerName, team = p.team, pos = p.position;
+
+    if (view === "proj") {
+      gp = num(p.gp_proj);
+      stats = {
+        goals: num(p.proj_goals), assists: num(p.proj_assists), shots: num(p.proj_shots),
+        hits: num(p.proj_hits), blocks: num(p.proj_blocks)
+      };
+    } else {
+      const h = (histByPlayer[pid] || {})["20252026"];
+      if (!h) return;                       // no 2025-26 season -> not in actual view
+      gp = num(h.gamesPlayed);
+      team = h.teams || team;
+      stats = {
+        goals: num(h.goals), assists: num(h.assists), shots: num(h.shots),
+        hits: num(h.hits), blocks: num(h.blockedShots)
+      };
+    }
+    const fp = fpOf(stats);
+    out.push({
+      playerId: pid, playerName: name, position: pos,
+      positionGroup: p.positionGroup, team: team || "",
+      gp: gp, fppg: gp > 0 ? fp / gp : 0, fpTotal: fp,
+      goals: stats.goals, assists: stats.assists, shots: stats.shots,
+      hits: stats.hits, blocks: stats.blocks,
+      trend_label: p.trend_label, confidence: p.confidence,
+      shPct_flag: p.shPct_flag, shPct_last: p.shPct_last, shPct_proj: p.shPct_proj,
+      injury_risk: (p.injury_risk || "").toLowerCase() === "true",
+      age: p.age, raw: p, tier: "NR", vorp: 0, vorpPG: 0
+    });
+  });
+
+  // Tiers (k-means on FPPG) and VORP (season total vs replacement), per group.
+  const teams = Math.max(1, parseInt(document.getElementById("cfgTeams").value) || 12);
+  const fSlots = Math.max(1, parseInt(document.getElementById("cfgF").value) || 9);
+  const dSlots = Math.max(1, parseInt(document.getElementById("cfgD").value) || 4);
+
+  [["F", fSlots], ["D", dSlots]].forEach(([pg, slots]) => {
+    const pool = out.filter(r => r.positionGroup === pg && r.gp >= TIER_MIN_GP);
+    if (pool.length) {
+      const cl = kmeans1d(pool.map(r => r.fppg), KMEANS_TIERS.length);
+      pool.forEach((r, i) => r.tier = KMEANS_TIERS[cl[i]]);
+    }
+    const n = teams * slots;
+    const ranked = pool.slice().sort((a, b) => b.fpTotal - a.fpTotal);
+    const baseline = ranked.length ? ranked[Math.min(n, ranked.length) - 1].fpTotal : 0;
+    // Rate baseline: the FPPG of the last startable slot, not his season total.
+    const rankedRate = pool.slice().sort((a, b) => b.fppg - a.fppg);
+    const baseRate = rankedRate.length ? rankedRate[Math.min(n, rankedRate.length) - 1].fppg : 0;
+    out.forEach(r => {
+      if (r.positionGroup === pg) {
+        r.vorp = r.fpTotal - baseline;
+        r.vorpPG = r.fppg - baseRate;
+      }
+    });
+  });
+
+  out.filter(r => r.gp >= TIER_MIN_GP)
+     .sort((a, b) => b.fpTotal - a.fpTotal)
+     .slice(0, teams)
+     .forEach(r => r.tier = "S++");
+
+  computed = out;
+}
+
+/* ------------------------------------------------------------------ *
+ * Filtering + sorting
+ * ------------------------------------------------------------------ */
+function filtered() {
+  const fTeam = document.getElementById("fTeam").value;
+  const fGP = num(document.getElementById("fGP").value);
+  const fTier = document.getElementById("fTier").value;
+  const fTrend = document.getElementById("fTrend").value;
+  const fFlag = document.getElementById("fShFlag").value;
+  const q = document.getElementById("fName").value.trim().toLowerCase();
+
+  let rows = computed.filter(r => {
+    if (posFilter && r.positionGroup !== posFilter) return false;
+    if (fTeam && !(r.team || "").split("/").includes(fTeam)) return false;
+    if (r.gp < fGP) return false;
+    if (fTier && r.tier !== fTier) return false;
+    if (fTrend && r.trend_label !== fTrend) return false;
+    if (fFlag && r.shPct_flag !== fFlag) return false;
+    if (q && r.playerName.toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  // Board rank: position by projected FPPG at the current weights, within the
+  // current filter. Assigned before the user's sort is applied, so it stays
+  // tied to the player rather than renumbering when you sort by another column.
+  rows.slice().sort((a, b) => b.fppg - a.fppg)
+      .forEach((r, i) => { r.rank = i + 1; });
+
+  const k = sortKey;
+  rows.sort((a, b) => {
+    let x = a[k], y = b[k];
+    if (typeof x === "number" || typeof y === "number") return (num(x) - num(y)) * sortDir;
+    x = (x || "").toString().toLowerCase(); y = (y || "").toString().toLowerCase();
+    return x < y ? -sortDir : x > y ? sortDir : 0;
+  });
+  return rows;
+}
+
+/* ------------------------------------------------------------------ *
+ * Rendering
+ * ------------------------------------------------------------------ */
+const COLS = [
+  { k: "rank", t: "#", n: true, d: 0 },
+  { k: "playerName", t: "Player", n: false },
+  { k: "position", t: "Pos", n: false },
+  { k: "team", t: "Team", n: false },
+  { k: "tier", t: "Tier", n: false },
+  { k: "gp", t: "GP", n: true, d: 1 },
+  { k: "fppg", t: "FPPG", n: true, d: 2 },
+  { k: "fpTotal", t: "Total", n: true, d: 1 },
+  { k: "vorp", t: "VORP", n: true, d: 1 },
+  { k: "vorpPG", t: "VORP/G", n: true, d: 2 },
+  { k: "goals", t: "G", n: true, d: 1 },
+  { k: "assists", t: "A", n: true, d: 1 },
+  { k: "shots", t: "S", n: true, d: 1 },
+  { k: "hits", t: "H", n: true, d: 1 },
+  { k: "blocks", t: "B", n: true, d: 1 },
+  { k: "trend_label", t: "Trend", n: false },
+  { k: "confidence", t: "Conf", n: false },
+  { k: "shPct_flag", t: "Sh% flag", n: false }
+];
+
+function renderHead() {
+  const tr = document.getElementById("thead");
+  tr.innerHTML = "";
+  COLS.forEach((c, idx) => {
+    const th = document.createElement("th");
+    th.className = c.n ? "num" : "";
+    th.textContent = c.t;
+    th.tabIndex = 0;
+    th.dataset.ci = idx;
+    th.title = `Sort by ${c.t}`;
+    const s = document.createElement("span");
+    const active = sortKey === c.k;
+    s.className = active ? "arrow" : "arrow idle";
+    s.textContent = active ? (sortDir < 0 ? " ▼" : " ▲") : " ⇅";
+    th.appendChild(s);
+    const sortBy = () => {
+      if (sortKey === c.k) sortDir = -sortDir;
+      else { sortKey = c.k; sortDir = c.n ? -1 : 1; }
+      render();
+      const restored = document.querySelectorAll("#thead th")[idx];
+      if (restored && document.activeElement !== document.body) restored.focus();
+    };
+    th.onclick = sortBy;
+    th.onkeydown = e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sortBy(); }
+    };
+    tr.appendChild(th);
+  });
+}
+
+function flagClass(f) {
+  if (f === "positive regression") return "flag-pos";
+  if (f === "negative regression") return "flag-neg";
+  return "";
+}
+
+function sparkline(vals, projVal) {
+  // vals: [{label, v}] actual seasons (may contain nulls), projVal: number
+  const pts = vals.map((o, i) => ({ x: i, v: o.v })).filter(o => o.v !== null);
+  const all = pts.map(p => p.v).concat([projVal]);
+  const lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+  const W = 150, H = 40, pad = 5;
+  const span = (hi - lo) || 1;
+  const sx = i => pad + (i / 3) * (W - 2 * pad);
+  const sy = v => H - pad - ((v - lo) / span) * (H - 2 * pad);
+  let d = "";
+  pts.forEach((p, i) => { d += (i ? " L" : "M") + sx(p.x).toFixed(1) + " " + sy(p.v).toFixed(1); });
+  const lastPt = pts.length ? pts[pts.length - 1] : null;
+  let dash = "";
+  if (lastPt) dash = `<path d="M${sx(lastPt.x).toFixed(1)} ${sy(lastPt.v).toFixed(1)} L${sx(3).toFixed(1)} ${sy(projVal).toFixed(1)}" fill="none" stroke="#61a0ff" stroke-width="1.4" stroke-dasharray="3 2"/>`;
+  const dots = pts.map(p => `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.v).toFixed(1)}" r="2.2" fill="#d8dee9"/>`).join("");
+  return `<svg width="${W}" height="${H}" role="img" aria-label="FPPG by season">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#14171c" stroke="#333a47"/>
+    <path d="${d}" fill="none" stroke="#d8dee9" stroke-width="1.4"/>
+    ${dash}${dots}
+    <circle cx="${sx(3).toFixed(1)}" cy="${sy(projVal).toFixed(1)}" r="2.8" fill="#61a0ff"/>
+  </svg>`;
+}
+
+function detailPanel(r) {
+  const p = r.raw;
+  const hist = histByPlayer[r.playerId] || {};
+  const per60 = (v, toi, gp) => (toi * gp > 0 ? (v / (toi * gp / 60)).toFixed(2) : "–");
+  const cells = [];
+  const seasonRows = SEASON_KEYS.map(sk => {
+    const h = hist[sk];
+    if (!h) return { sk, empty: true };
+    const gp = num(h.gamesPlayed), toi = num(h.toiPerGame);
+    const st = {
+      goals: num(h.goals), assists: num(h.assists), shots: num(h.shots),
+      hits: num(h.hits), blocks: num(h.blockedShots)
+    };
+    const fp = fpOf(st);
+    return { sk, gp, toi, st, fp, fppg: gp ? fp / gp : 0, teams: h.teams,
+             shPct: num(h.shootingPct) };
+  });
+
+  const projSt = {
+    goals: num(p.proj_goals), assists: num(p.proj_assists), shots: num(p.proj_shots),
+    hits: num(p.proj_hits), blocks: num(p.proj_blocks)
+  };
+  const projGP = num(p.gp_proj), projFP = fpOf(projSt);
+
+  const hdr = ["Season", "Team", "GP", "TOI/GP", "G", "A", "S", "H", "B",
+               "Sh%", "FP", "FPPG", "G/60", "A/60", "S/60", "H/60", "B/60"];
+  let t = "<table><thead><tr>" + hdr.map((h, i) =>
+    `<th class="${i > 1 ? "num" : ""}">${h}</th>`).join("") + "</tr></thead><tbody>";
+  seasonRows.forEach(s => {
+    if (s.empty) {
+      t += `<tr><td>${SEASON_LABEL[s.sk]}</td><td colspan="16" style="color:var(--dim)">did not appear</td></tr>`;
+      return;
+    }
+    t += `<tr>
+      <td>${SEASON_LABEL[s.sk]}</td><td>${s.teams}</td>
+      <td class="num">${s.gp}</td><td class="num">${s.toi.toFixed(2)}</td>
+      <td class="num">${s.st.goals}</td><td class="num">${s.st.assists}</td>
+      <td class="num">${s.st.shots}</td><td class="num">${s.st.hits}</td>
+      <td class="num">${s.st.blocks}</td><td class="num">${s.shPct.toFixed(1)}</td>
+      <td class="num">${s.fp.toFixed(1)}</td><td class="num">${s.fppg.toFixed(2)}</td>
+      <td class="num">${per60(s.st.goals, s.toi, s.gp)}</td>
+      <td class="num">${per60(s.st.assists, s.toi, s.gp)}</td>
+      <td class="num">${per60(s.st.shots, s.toi, s.gp)}</td>
+      <td class="num">${per60(s.st.hits, s.toi, s.gp)}</td>
+      <td class="num">${per60(s.st.blocks, s.toi, s.gp)}</td></tr>`;
+  });
+  t += `<tr style="border-top:2px solid var(--line)">
+    <td style="color:var(--accent)">2026-27 proj</td><td>${p.team || "–"}</td>
+    <td class="num">${projGP.toFixed(1)}</td><td class="num">${num(p.toiProj).toFixed(2)}</td>
+    <td class="num">${projSt.goals.toFixed(1)}</td><td class="num">${projSt.assists.toFixed(1)}</td>
+    <td class="num">${projSt.shots.toFixed(1)}</td><td class="num">${projSt.hits.toFixed(1)}</td>
+    <td class="num">${projSt.blocks.toFixed(1)}</td><td class="num">${num(p.shPct_proj).toFixed(1)}</td>
+    <td class="num">${projFP.toFixed(1)}</td>
+    <td class="num">${(projGP ? projFP / projGP : 0).toFixed(2)}</td>
+    <td class="num" colspan="5">–</td></tr>`;
+  t += "</tbody></table>";
+
+  const sparkVals = seasonRows.map(s => ({ label: SEASON_LABEL[s.sk], v: s.empty ? null : s.fppg }));
+  const meta = `<table><tbody>
+    <tr><td style="color:var(--dim)">Age (Feb 1 2027)</td><td class="num">${p.age || "–"}</td></tr>
+    <tr><td style="color:var(--dim)">Age mult (scoring / physical)</td><td class="num">${p.ageMult_scoring} / ${p.ageMult_physical}</td></tr>
+    <tr><td style="color:var(--dim)">TOI/GP history &rarr; projected</td><td class="num">${p.toiHist} &rarr; ${p.toiProj}</td></tr>
+    <tr><td style="color:var(--dim)">Ice-time multiplier</td><td class="num">${p.toiMult}</td></tr>
+    <tr><td style="color:var(--dim)">TOI trend (min/season)</td><td class="num">${p.toi_trend}</td></tr>
+    <tr><td style="color:var(--dim)">Slope FP/60</td><td class="num">${p.slope_per60}</td></tr>
+    <tr><td style="color:var(--dim)">Role volatility</td><td class="num">${p.role_volatility}</td></tr>
+    <tr><td style="color:var(--dim)">Sh% last → proj</td><td class="num ${flagClass(p.shPct_flag)}">${p.shPct_last || "–"} → ${p.shPct_proj}</td></tr>
+    <tr><td style="color:var(--dim)">Confidence</td><td class="num">${p.confidence}</td></tr>
+    <tr><td style="color:var(--dim)">Injury risk</td><td class="num ${p.injury_risk === "True" ? "injury" : ""}">${p.injury_risk}</td></tr>
+    <tr><td style="color:var(--dim)">Career GP (3yr)</td><td class="num">${p.careerGP}</td></tr>
+  </tbody></table>`;
+
+  return `<div class="detail-wrap"><div>${t}</div><div>
+      <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">FPPG by season → projection</div>
+      ${sparkline(sparkVals, projGP ? projFP / projGP : 0)}
+    </div><div>${meta}</div></div>`;
+}
+
+function render() {
+  buildComputed();
+  renderHead();
+  const rows = filtered();
+  const tb = document.getElementById("tbody");
+  tb.innerHTML = "";
+  const frag = document.createDocumentFragment();
+
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.className = "main" + (openPlayer === r.playerId ? " open" : "");
+    COLS.forEach(c => {
+      const td = document.createElement("td");
+      if (c.k === "tier") {
+        td.innerHTML = `<span class="tier t-${r.tier.replace(/\+/g, "P")}">${r.tier}</span>`;
+      } else if (c.k === "shPct_flag") {
+        td.className = flagClass(r.shPct_flag);
+        td.textContent = r.shPct_flag === "neutral" ? "" : r.shPct_flag;
+      } else if (c.k === "playerName") {
+        td.textContent = r.playerName + (r.injury_risk ? " ⚠" : "");
+        if (r.injury_risk) td.title = "GP < 55 in at least one of the last three seasons";
+      } else if (c.n) {
+        td.className = "num";
+        td.textContent = r[c.k].toFixed(c.d);
+      } else {
+        td.textContent = r[c.k];
+      }
+      tr.appendChild(td);
+    });
+    tr.onclick = () => { openPlayer = (openPlayer === r.playerId) ? null : r.playerId; render(); };
+    frag.appendChild(tr);
+
+    if (openPlayer === r.playerId) {
+      const dtr = document.createElement("tr");
+      dtr.className = "detail";
+      const td = document.createElement("td");
+      td.colSpan = COLS.length;
+      td.innerHTML = detailPanel(r);
+      dtr.appendChild(td);
+      frag.appendChild(dtr);
+    }
+  });
+  tb.appendChild(frag);
+
+  document.getElementById("count").textContent =
+    `${rows.length} of ${computed.length} players shown — ` +
+    `view: ${view === "proj" ? "2026-27 projection" : "2025-26 actual"} — ` +
+    `scoring G ${weights.goals} / A ${weights.assists} / SOG ${weights.shots} / ` +
+    `HIT ${weights.hits} / BLK ${weights.blocks}`;
+
+  renderTop10();
+}
+
+function renderTop10() {
+  const pool = computed
+    .filter(r => r.gp >= TIER_MIN_GP && (!posFilter || r.positionGroup === posFilter))
+    .sort((a, b) => b.fppg - a.fppg).slice(0, 10);
+  const scope = posFilter === "F" ? "forwards"
+              : posFilter === "D" ? "defensemen" : "all skaters";
+  document.getElementById("top10ctx").textContent =
+    `(${scope}, ${view === "proj" ? "projected" : "2025-26 actual"}, min ${TIER_MIN_GP} GP)`;
+  document.getElementById("top10").innerHTML = pool.length
+    ? pool.map((r, i) =>
+        `<div><span class="rank">${i + 1}.</span> ${r.playerName}
+         <span class="pos-badge">${r.position}</span>
+         <span class="fp mono">${r.fppg.toFixed(2)}</span></div>`).join("")
+    : "—";
+}
+
+/* ------------------------------------------------------------------ *
+ * Export
+ * ------------------------------------------------------------------ */
+function exportMsg(msg, err) {
+  const el = document.getElementById("exportMsg");
+  el.textContent = msg;
+  el.className = "status" + (err ? " err" : "");
+  if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ""; }, 6000);
+}
+
+function buildExport() {
+  const rows = filtered();
+  const header = COLS.map(c => c.k);
+  const body = rows.map(r => {
+    const o = {};
+    COLS.forEach(c => o[c.k] = c.n ? r[c.k].toFixed(c.d === 2 ? 3 : 2) : r[c.k]);
+    return o;
+  });
+  const wname = `g${weights.goals}_a${weights.assists}_s${weights.shots}_h${weights.hits}_b${weights.blocks}`;
+  const posTag = posFilter ? `_${posFilter}` : "";
+  const stem = `nhl_${view === "proj" ? "proj2026-27" : "actual2025-26"}${posTag}_${wname}`;
+  return { text: toCSV(header, body), stem: stem, count: rows.length };
+}
+
+function exportViaBlob(text, filename) {
+  const blob = new Blob([text], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+async function exportCSV() {
+  const { text, stem, count } = buildExport();
+
+  // Hosted on claude.ai: the sandbox blocks page-initiated downloads, so the
+  // file goes through the downloads capability instead.
+  if (window.claude && typeof window.claude.use === "function") {
+    const downloads = await window.claude.use("downloads");
+    if (!downloads) {
+      exportMsg("Downloads are not available in this view.", true);
+      return;
+    }
+    const attempt = async ext => downloads.save({ filename: `${stem}.${ext}`, data: text });
+    try {
+      await attempt("csv");
+      exportMsg(`Saved ${count} rows.`);
+    } catch (e) {
+      const code = (e && e.code) || "unavailable";
+      if (code === "extension_not_enabled") {
+        // .csv sits in the extended allowlist; .txt always works.
+        try {
+          await attempt("txt");
+          exportMsg(`Saved ${count} rows as .txt (CSV contents).`);
+        } catch (e2) {
+          const c2 = (e2 && e2.code) || "unavailable";
+          exportMsg(c2 === "declined" ? "Save cancelled." : `Save failed (${c2}).`,
+                    c2 !== "declined");
+        }
+      } else if (code === "declined") {
+        exportMsg("Save cancelled.");
+      } else if (code === "rate_limited") {
+        exportMsg("A save prompt is already open — finish it first.", true);
+      } else {
+        exportMsg(`Save failed (${code}).`, true);
+      }
+    }
+    return;
+  }
+
+  exportViaBlob(text, `${stem}.csv`);
+}
+
+/* ------------------------------------------------------------------ *
+ * Loading
+ * ------------------------------------------------------------------ */
+function setStatus(msg, err) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = "status" + (err ? " err" : "");
+}
+
+function ingestProj(text) {
+  const rows = parseCSV(text);
+  if (!rows.length || !("gp_proj" in rows[0]))
+    throw new Error("that file does not look like projections_2026_27.csv");
+  projRows = rows;
+}
+function ingestHist(text) {
+  const rows = parseCSV(text);
+  if (!rows.length || !("seasonId" in rows[0]))
+    throw new Error("that file does not look like skaters_3yr.csv");
+  histByPlayer = {};
+  rows.forEach(r => {
+    (histByPlayer[r.playerId] = histByPlayer[r.playerId] || {})[r.seasonId] = r;
+  });
+}
+
+function refreshTeamFilter() {
+  const teams = new Set();
+  projRows.forEach(p => {
+    (p.team || "").split("/").forEach(t => { if (t) teams.add(t); });
+  });
+  Object.values(histByPlayer).forEach(seasons => {
+    const h = seasons["20252026"];
+    if (h) (h.teams || "").split("/").forEach(t => { if (t) teams.add(t); });
+  });
+  const sel = document.getElementById("fTeam");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">all</option>' +
+    Array.from(teams).sort().map(t => `<option>${t}</option>`).join("");
+  sel.value = cur;
+}
+
+function ready() {
+  if (!projRows.length) return false;
+  refreshTeamFilter();
+  render();
+  return true;
+}
+
+document.getElementById("fileProj").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try { ingestProj(fr.result); setStatus(`projections: ${projRows.length} players loaded`); ready(); }
+    catch (err) { setStatus(err.message, true); }
+  };
+  fr.readAsText(f);
+});
+document.getElementById("fileHist").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      ingestHist(fr.result);
+      setStatus(`history: ${Object.keys(histByPlayer).length} players loaded` +
+                (projRows.length ? "" : " — still need projections_2026_27.csv"));
+      ready();
+    } catch (err) { setStatus(err.message, true); }
+  };
+  fr.readAsText(f);
+});
+
+STATS.forEach(s => document.getElementById("w_" + s)
+  .addEventListener("input", () => { readWeightInputs(); render(); }));
+document.getElementById("resetWeights").onclick = () => {
+  weights = Object.assign({}, DEFAULT_WEIGHTS);
+  STATS.forEach(s => document.getElementById("w_" + s).value = weights[s]);
+  saveWeights(); render();
+};
+["cfgTeams", "cfgF", "cfgD", "fTeam", "fGP", "fTier", "fTrend", "fShFlag", "fName"]
+  .forEach(id => document.getElementById(id).addEventListener("input", render));
+document.getElementById("btnExport").onclick = exportCSV;
+document.querySelectorAll(".pos-btn").forEach(btn => {
+  btn.onclick = () => {
+    posFilter = btn.dataset.pos;
+    document.querySelectorAll(".pos-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    render();
+  };
+});
+document.getElementById("btnProj").onclick = () => {
+  view = "proj";
+  document.getElementById("btnProj").classList.add("active");
+  document.getElementById("btnActual").classList.remove("active");
+  render();
+};
+document.getElementById("btnActual").onclick = () => {
+  view = "actual";
+  document.getElementById("btnActual").classList.add("active");
+  document.getElementById("btnProj").classList.remove("active");
+  render();
+};
+
+loadWeights();
+
+// Auto-load when served over http(s); under file:// this fails and the file
+// inputs above are the way in.
+(async function autoload() {
+  if (window.EMBEDDED_DATA) {
+    try {
+      ingestProj(window.EMBEDDED_DATA.proj);
+      ingestHist(window.EMBEDDED_DATA.hist);
+      setStatus(`${projRows.length} players built in — or load your own CSVs above to override`);
+      ready();
+      return;
+    } catch (e) { setStatus("Built-in data failed to parse: " + e.message, true); }
+  }
+  try {
+    const [a, b] = await Promise.all([
+      fetch("data/projections_2026_27.csv"),
+      fetch("data/skaters_3yr.csv")
+    ]);
+    if (!a.ok || !b.ok) throw new Error("not found");
+    ingestProj(await a.text());
+    ingestHist(await b.text());
+    setStatus(`auto-loaded ${projRows.length} players from data/`);
+    ready();
+  } catch (e) {
+    setStatus("Pick both CSVs above (auto-load only works when served over http).");
+  }
+})();
+</script>
+</body>
+</html>

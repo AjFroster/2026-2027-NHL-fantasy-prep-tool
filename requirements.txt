@@ -1,0 +1,8 @@
+# Only the Streamlit app needs third-party packages.
+# fetch_nhl.py, project.py, build_hosted.py, analyze_experience.py and
+# draft_sim.py are standard library only (draft_sim/analyze use pandas, which
+# ships with streamlit).
+#
+#   uv venv --python 3.12 .venv
+#   uv pip install --python .venv/bin/python -r requirements.txt
+streamlit>=1.40      # needs st.segmented_control and dataframe row selection
