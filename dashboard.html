@@ -570,7 +570,7 @@ function detailPanel(r) {
     <tr><td style="color:var(--dim)">Role volatility</td><td class="num">${p.role_volatility}</td></tr>
     <tr><td style="color:var(--dim)">Sh% last → proj</td><td class="num ${flagClass(p.shPct_flag)}">${p.shPct_last || "–"} → ${p.shPct_proj}</td></tr>
     <tr><td style="color:var(--dim)">Confidence</td><td class="num">${p.confidence}</td></tr>
-    <tr><td style="color:var(--dim)">Injury risk</td><td class="num ${p.injury_risk === "True" ? "injury" : ""}">${p.injury_risk}</td></tr>
+    <tr><td style="color:var(--dim)">Injury risk</td><td class="num ${p.injury_risk === "True" ? "injury" : ""}">${p.injury_risk === "True" ? "yes" : "no"}</td></tr>
     <tr><td style="color:var(--dim)">Career GP (3yr)</td><td class="num">${p.careerGP}</td></tr>
   </tbody></table>`;
 
